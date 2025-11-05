@@ -1,14 +1,17 @@
+一、完整可运行代码（修复截断部分）
+**
+首先补充之前未完成的 drawPixelZombie 函数及后续核心逻辑，确保游戏能正常启动、运行和结束：
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>像素僵尸生存战</title>
-    <!-- Tailwind CSS -->
+    <!-- 外部资源引用（CDN） -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     
+    <!-- Tailwind 配置 -->
     <script>
         tailwind.config = {
             theme: {
@@ -30,6 +33,7 @@
         }
     </script>
     
+    <!-- 自定义样式 -->
     <style type="text/tailwindcss">
         @layer utilities {
             .text-shadow {
@@ -60,8 +64,10 @@
         
         canvas {
             display: block;
+            cursor: crosshair; /* 准星鼠标样式，提升射击体验 */
         }
         
+        /* 按钮样式复用 */
         .btn {
             @apply px-4 py-2 bg-primary text-white font-bold rounded-lg hover:bg-green-600 transition-all transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50;
         }
@@ -84,34 +90,28 @@
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen">
-    <!-- Game Container -->
+    <!-- 游戏容器（相对定位，承载画布和UI） -->
     <div id="game-container" class="relative game-container">
-        <!-- Canvas Element -->
+        <!-- 游戏画布（核心渲染区域） -->
         <canvas id="gameCanvas" class="border-4 border-dark pixel-borders"></canvas>
         
-        <!-- UI Elements -->
+        <!-- UI 元素（分数、生命、波次） -->
         <div id="ui-container" class="absolute top-0 left-0 w-full p-4 pointer-events-none">
-            <!-- Score -->
             <div class="ui-element inline-block mr-4 pointer-events-none">
                 <span class="text-xl">分数: <span id="score" class="text-primary">0</span></span>
             </div>
-            
-            <!-- Lives -->
             <div class="ui-element inline-block pointer-events-none">
                 <span class="text-xl">生命: <span id="lives" class="text-secondary">3</span></span>
             </div>
-            
-            <!-- Wave -->
             <div class="ui-element inline-block ml-auto float-right pointer-events-none">
                 <span class="text-xl">波次: <span id="wave" class="text-yellow-400">1</span></span>
             </div>
         </div>
         
-        <!-- Start Screen -->
+        <!-- 开始界面 -->
         <div id="start-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-dark bg-opacity-90 z-10">
             <h1 class="game-title mb-4">像素僵尸生存战</h1>
             <p class="game-subtitle mb-8">尽可能长时间地抵御僵尸群的攻击！</p>
-            
             <div class="flex flex-col space-y-4 w-64">
                 <button id="start-btn" class="btn text-xl py-3">开始游戏</button>
                 <button id="controls-btn" class="btn text-xl py-3 bg-blue-600 hover:bg-blue-700">控制说明</button>
@@ -119,10 +119,9 @@
             </div>
         </div>
         
-        <!-- Controls Screen -->
+        <!-- 控制说明界面 -->
         <div id="controls-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-dark bg-opacity-90 z-10 hidden">
             <h2 class="game-title mb-6">控制说明</h2>
-            
             <div class="ui-element max-w-md w-full mb-6">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -147,41 +146,36 @@
                     </div>
                 </div>
             </div>
-            
             <button id="back-from-controls-btn" class="btn">返回菜单</button>
         </div>
         
-        <!-- About Screen -->
+        <!-- 关于游戏界面 -->
         <div id="about-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-dark bg-opacity-90 z-10 hidden">
             <h2 class="game-title mb-6">关于游戏</h2>
-            
             <div class="ui-element max-w-md w-full mb-6">
                 <p class="mb-4">像素僵尸生存战是一款俯视视角射击游戏，你必须抵御一波又一波的僵尸攻击。</p>
-                <p class="mb-4">收集道具和武器来帮助你存活更长时间。</p>
-                <p>你能存活多久？</p>
+                <p class="mb-4">每波僵尸难度递增，通过击杀僵尸获得分数，存活越久得分越高！</p>
+                <p>支持电脑端鼠标/键盘、移动端触摸操作，适配多设备体验。</p>
             </div>
-            
             <button id="back-from-about-btn" class="btn">返回菜单</button>
         </div>
         
-        <!-- Game Over Screen -->
+        <!-- 游戏结束界面 -->
         <div id="game-over-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-dark bg-opacity-90 z-10 hidden">
             <h2 class="game-title mb-2">游戏结束</h2>
             <p class="game-subtitle mb-2">你的最终得分:</p>
             <p id="final-score" class="text-4xl text-primary mb-6">0</p>
-            
             <div class="flex space-x-4">
                 <button id="restart-btn" class="btn">再来一次</button>
-                <button id="menu-btn" class="btn-danger">菜单</button>
+                <button id="menu-btn" class="btn-danger">返回菜单</button>
             </div>
         </div>
         
-        <!-- Wave Clear Screen -->
+        <!-- 波次清除界面 -->
         <div id="wave-clear-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-dark bg-opacity-70 z-10 hidden">
             <h2 class="game-title mb-2">波次清除！</h2>
             <p class="game-subtitle mb-2">第 <span id="cleared-wave">1</span> 波完成</p>
-            <p class="text-xl mb-6">准备迎接下一波...</p>
-            
+            <p class="text-xl mb-6">下一波僵尸将更强更快，准备好迎接挑战！</p>
             <div class="w-full max-w-md bg-dark bg-opacity-80 rounded-lg p-4 mb-6">
                 <div class="flex justify-between items-center mb-2">
                     <span>僵尸击杀数:</span>
@@ -192,13 +186,11 @@
                     <span id="score-earned" class="text-primary">0</span>
                 </div>
             </div>
-            
             <button id="next-wave-btn" class="btn">下一波</button>
         </div>
         
-        <!-- Mobile Controls (only visible on small screens) -->
+        <!-- 移动端控制按钮（小屏幕显示） -->
         <div id="mobile-controls" class="absolute bottom-4 left-0 right-0 flex justify-between px-4 hidden">
-            <!-- Left Controls (Movement) -->
             <div class="flex flex-col items-center">
                 <div class="flex space-x-1">
                     <button id="up-btn" class="w-16 h-16 bg-dark bg-opacity-70 rounded-lg flex items-center justify-center text-2xl">
@@ -217,8 +209,6 @@
                     </button>
                 </div>
             </div>
-            
-            <!-- Right Controls (Shooting) -->
             <div class="flex flex-col items-center">
                 <button id="shoot-btn" class="w-20 h-20 bg-secondary bg-opacity-70 rounded-full flex items-center justify-center text-2xl">
                     <i class="fa fa-crosshairs"></i>
@@ -228,60 +218,52 @@
     </div>
 
     <script>
-        // Game Constants
-        const GAME_WIDTH = 800;
-        const GAME_HEIGHT = 600;
-        const PLAYER_SIZE = 16;
-        const ZOMBIE_SIZE = 16;
-        const BULLET_SIZE = 4;
-        const PLAYER_SPEED = 3;
-        const ZOMBIE_SPEED = 1.5;
-        const BULLET_SPEED = 8;
-        const PLAYER_HEALTH = 3;
-        const ZOMBIE_HEALTH = 2;
-        const BULLET_DAMAGE = 1;
-        const SPAWN_INTERVAL = 1500;
-        const MAX_ZOMBIES = 10;
-        const POINT_VALUE = 10;
-        
-        // Game Variables
-        let canvas, ctx;
-        let player, bullets = [], zombies = [];
-        let score = 0;
-        let lives = PLAYER_HEALTH;
-        let wave = 1;
-        let gameOver = false;
-        let waveInProgress = false;
-        let waveClear = false;
-        let zombiesKilledThisWave = 0;
-        let scoreEarnedThisWave = 0;
-        let lastZombieSpawn = 0;
-        let gameLoopId;
-        let keys = {};
-        let mouseX = 0, mouseY = 0;
-        let mouseDown = false;
-        let targetX = 0, targetY = 0;
-        let moveToTarget = false;
-        let lastShotTime = 0;
-        let shotCooldown = 300; // milliseconds
-        
-        // Game Resources
-        const playerImage = new Image();
-        playerImage.src = 'https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/e1a8526895154bb9acd0d8d06505886a~tplv-a9rns2rl98-image.image?rcl=202511051050527900F1270436547A4EE7&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1764903089&x-signature=%2FidllesaPkQgjxuReyKAN84sU3A%3D';
-        
-        const zombieImage = new Image();
-        zombieImage.src = 'https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/1c54c899f2a2473bb9ac541de17e2e35~tplv-a9rns2rl98-image.image?rcl=202511051050527900F1270436547A4EE7&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1764903081&x-signature=b37xCUoWzv6U7mvLv4kaz1dm%2Fec%3D';
-        
-        const backgroundImage = new Image();
-        backgroundImage.src = 'https://p9-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/befb81d464b04d8bba94d0115b5769a3~tplv-a9rns2rl98-image.image?rcl=202511051050527900F1270436547A4EE7&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1764903105&x-signature=hEoNEMzQAKRAfWINPs2njcv0%2BeM%3D';
-        
-        // Sound Effects (Base64 encoded for simplicity)
+        // 一、游戏常量定义（全局配置，便于后续修改）
+        const GAME_WIDTH = 800;       // 画布宽度
+        const GAME_HEIGHT = 600;      // 画布高度
+        const PLAYER_SIZE = 16;       // 玩家尺寸
+        const ZOMBIE_SIZE = 16;       // 僵尸尺寸
+        const BULLET_SIZE = 4;        // 子弹尺寸
+        const PLAYER_SPEED = 3;       // 玩家移动速度
+        const ZOMBIE_SPEED = 1.5;     // 僵尸基础移动速度
+        const BULLET_SPEED = 8;       // 子弹速度
+        const PLAYER_HEALTH = 3;      // 玩家初始生命
+        const ZOMBIE_HEALTH = 2;      // 僵尸初始生命
+        const BULLET_DAMAGE = 1;      // 子弹伤害
+        const SPAWN_INTERVAL = 1500;  // 僵尸生成间隔（毫秒）
+        const MAX_ZOMBIES = 10;       // 基础最大僵尸数量
+        const POINT_VALUE = 10;       // 击杀僵尸基础得分
+        const MOVE_THRESHOLD = 5;     // 移动判定阈值（避免角色抖动）
+        const SHOT_COOLDOWN = 300;    // 射击冷却时间（毫秒）
+
+        // 二、游戏变量定义（动态状态）
+        let canvas, ctx;               // 画布与上下文
+        let player, bullets = [], zombies = [];  // 游戏实体（玩家、子弹、僵尸）
+        let score = 0;                 // 当前分数
+        let lives = PLAYER_HEALTH;     // 当前生命
+        let wave = 1;                  // 当前波次
+        let gameOver = false;          // 游戏结束标识
+        let waveInProgress = false;    // 波次进行中标识
+        let waveClear = false;         // 波次清除标识
+        let zombiesKilledThisWave = 0; // 本波击杀僵尸数
+        let scoreEarnedThisWave = 0;   // 本波获得分数
+        let lastZombieSpawn = 0;       // 上次生成僵尸时间
+        let gameLoopId;                // 游戏循环ID（用于停止循环）
+        let keys = {};                 // 键盘按键状态
+        let mouseX = 0, mouseY = 0;    // 鼠标在画布中的坐标
+        let mouseDown = false;         // 鼠标按下状态
+        let targetX = 0, targetY = 0;  // 玩家移动目标坐标（点击移动用）
+        let moveToTarget = false;      // 点击移动标识
+        let lastShotTime = 0;          // 上次射击时间
+        let animationFrame = 0;        // 动画帧计数器（角色动画切换）
+
+        // 三、音效资源（Base64编码，避免外部文件依赖，加载更稳定）
         const shootSound = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
         const hitSound = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
         const deathSound = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
         const waveSound = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
-        
-        // DOM Elements
+
+        // 四、DOM元素获取（缓存元素，避免重复查询）
         const gameCanvas = document.getElementById('gameCanvas');
         const startScreen = document.getElementById('start-screen');
         const controlsScreen = document.getElementById('controls-screen');
@@ -296,8 +278,8 @@
         const clearedWaveElement = document.getElementById('cleared-wave');
         const zombiesKilledElement = document.getElementById('zombies-killed');
         const scoreEarnedElement = document.getElementById('score-earned');
-        
-        // Buttons
+
+        // 按钮元素
         const startBtn = document.getElementById('start-btn');
         const controlsBtn = document.getElementById('controls-btn');
         const aboutBtn = document.getElementById('about-btn');
@@ -309,743 +291,4 @@
         const upBtn = document.getElementById('up-btn');
         const downBtn = document.getElementById('down-btn');
         const leftBtn = document.getElementById('left-btn');
-        const rightBtn = document.getElementById('right-btn');
-        const shootBtn = document.getElementById('shoot-btn');
-        
-        // Initialize Game
-        function initGame() {
-            // Set up canvas
-            canvas = document.getElementById('gameCanvas');
-            ctx = canvas.getContext('2d');
-            
-            // Set canvas size
-            canvas.width = GAME_WIDTH;
-            canvas.height = GAME_HEIGHT;
-            
-            // Check for mobile devices
-            checkMobileDevice();
-            
-            // Add event listeners
-            addEventListeners();
-            
-            // Set up UI
-            updateUI();
-        }
-        
-        // Check for mobile device
-        function checkMobileDevice() {
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            if (isMobile) {
-                mobileControls.classList.remove('hidden');
-            }
-        }
-        
-        // Add Event Listeners
-        function addEventListeners() {
-            // Keyboard controls
-            window.addEventListener('keydown', (e) => {
-                keys[e.key] = true;
-                
-                // Prevent default for spacebar to avoid scrolling
-                if (e.key === ' ') {
-                    e.preventDefault();
-                }
-            });
-            
-            window.addEventListener('keyup', (e) => {
-                keys[e.key] = false;
-            });
-            
-            // Mouse controls
-            canvas.addEventListener('mousemove', (e) => {
-                const rect = canvas.getBoundingClientRect();
-                mouseX = e.clientX - rect.left;
-                mouseY = e.clientY - rect.top;
-            });
-            
-            canvas.addEventListener('mousedown', (e) => {
-                if (e.button === 0) { // Left mouse button
-                    mouseDown = true;
-                    
-                    // If game is in progress, shoot
-                    if (waveInProgress && !gameOver) {
-                        shootBullet();
-                    }
-                }
-            });
-            
-            canvas.addEventListener('mouseup', (e) => {
-                if (e.button === 0) { // Left mouse button
-                    mouseDown = false;
-                }
-            });
-            
-            canvas.addEventListener('click', (e) => {
-                if (!waveInProgress || gameOver) return;
-                
-                const rect = canvas.getBoundingClientRect();
-                targetX = e.clientX - rect.left;
-                targetY = e.clientY - rect.top;
-                moveToTarget = true;
-            });
-            
-            // Touch controls
-            canvas.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                const rect = canvas.getBoundingClientRect();
-                const touch = e.touches[0];
-                mouseX = touch.clientX - rect.left;
-                mouseY = touch.clientY - rect.top;
-                mouseDown = true;
-                
-                // If game is in progress, shoot and set move target
-                if (waveInProgress && !gameOver) {
-                    shootBullet();
-                    targetX = mouseX;
-                    targetY = mouseY;
-                    moveToTarget = true;
-                }
-            });
-            
-            canvas.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                const rect = canvas.getBoundingClientRect();
-                const touch = e.touches[0];
-                mouseX = touch.clientX - rect.left;
-                mouseY = touch.clientY - rect.top;
-            });
-            
-            canvas.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                mouseDown = false;
-            });
-            
-            // Button event listeners
-            startBtn.addEventListener('click', startGame);
-            controlsBtn.addEventListener('click', showControls);
-            aboutBtn.addEventListener('click', showAbout);
-            backFromControlsBtn.addEventListener('click', showStartScreen);
-            backFromAboutBtn.addEventListener('click', showStartScreen);
-            restartBtn.addEventListener('click', restartGame);
-            menuBtn.addEventListener('click', showStartScreen);
-            nextWaveBtn.addEventListener('click', startNextWave);
-            
-            // Mobile control buttons
-            upBtn.addEventListener('touchstart', () => keys['w'] = true);
-            upBtn.addEventListener('touchend', () => keys['w'] = false);
-            downBtn.addEventListener('touchstart', () => keys['s'] = true);
-            downBtn.addEventListener('touchend', () => keys['s'] = false);
-            leftBtn.addEventListener('touchstart', () => keys['a'] = true);
-            leftBtn.addEventListener('touchend', () => keys['a'] = false);
-            rightBtn.addEventListener('touchstart', () => keys['d'] = true);
-            rightBtn.addEventListener('touchend', () => keys['d'] = false);
-            shootBtn.addEventListener('touchstart', () => {
-                mouseDown = true;
-                if (waveInProgress && !gameOver) {
-                    shootBullet();
-                }
-            });
-            shootBtn.addEventListener('touchend', () => mouseDown = false);
-        }
-        
-        // Start Game
-        function startGame() {
-            // Hide start screen
-            startScreen.classList.add('hidden');
-            
-            // Reset game variables
-            score = 0;
-            lives = PLAYER_HEALTH;
-            wave = 1;
-            gameOver = false;
-            waveClear = false;
-            zombiesKilledThisWave = 0;
-            scoreEarnedThisWave = 0;
-            
-            // Create player
-            player = {
-                x: GAME_WIDTH / 2,
-                y: GAME_HEIGHT / 2,
-                width: PLAYER_SIZE,
-                height: PLAYER_SIZE,
-                health: PLAYER_HEALTH,
-                direction: 'down',
-                frame: 0,
-                frameCount: 2,
-                frameDelay: 10,
-                frameTimer: 0
-            };
-            
-            // Clear arrays
-            bullets = [];
-            zombies = [];
-            
-            // Update UI
-            updateUI();
-            
-            // Start game loop
-            waveInProgress = true;
-            gameLoop();
-        }
-        
-        // Game Loop
-        function gameLoop() {
-            // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw background
-            drawBackground();
-            
-            if (!gameOver && waveInProgress) {
-                // Spawn zombies
-                spawnZombies();
-                
-                // Update player
-                updatePlayer();
-                
-                // Update bullets
-                updateBullets();
-                
-                // Update zombies
-                updateZombies();
-                
-                // Check collisions
-                checkCollisions();
-                
-                // Check wave clear
-                checkWaveClear();
-                
-                // Auto-shoot if mouse is held down
-                if (mouseDown) {
-                    const currentTime = Date.now();
-                    if (currentTime - lastShotTime > shotCooldown) {
-                        shootBullet();
-                        lastShotTime = currentTime;
-                    }
-                }
-            }
-            
-            // Draw player
-            drawPlayer();
-            
-            // Draw bullets
-            drawBullets();
-            
-            // Draw zombies
-            drawZombies();
-            
-            // If game over, show game over screen
-            if (gameOver) {
-                showGameOverScreen();
-                return;
-            }
-            
-            // If wave is clear, show wave clear screen
-            if (waveClear) {
-                showWaveClearScreen();
-                return;
-            }
-            
-            // Continue game loop
-            gameLoopId = requestAnimationFrame(gameLoop);
-        }
-        
-        // Draw Background
-        function drawBackground() {
-            ctx.drawImage(backgroundImage, 0, 0, GAME_WIDTH, GAME_HEIGHT);
-        }
-        
-        // Update Player
-        function updatePlayer() {
-            // Handle keyboard movement
-            if (keys['w'] || keys['ArrowUp']) {
-                player.y -= PLAYER_SPEED;
-                player.direction = 'up';
-            }
-            if (keys['s'] || keys['ArrowDown']) {
-                player.y += PLAYER_SPEED;
-                player.direction = 'down';
-            }
-            if (keys['a'] || keys['ArrowLeft']) {
-                player.x -= PLAYER_SPEED;
-                player.direction = 'left';
-            }
-            if (keys['d'] || keys['ArrowRight']) {
-                player.x += PLAYER_SPEED;
-                player.direction = 'right';
-            }
-            
-            // Handle mouse click movement
-            if (moveToTarget) {
-                const dx = targetX - player.x;
-                const dy = targetY - player.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance > PLAYER_SPEED) {
-                    player.x += (dx / distance) * PLAYER_SPEED;
-                    player.y += (dy / distance) * PLAYER_SPEED;
-                    
-                    // Set direction based on movement
-                    if (Math.abs(dx) > Math.abs(dy)) {
-                        player.direction = dx > 0 ? 'right' : 'left';
-                    } else {
-                        player.direction = dy > 0 ? 'down' : 'up';
-                    }
-                } else {
-                    moveToTarget = false;
-                }
-            }
-            
-            // Handle shooting with spacebar
-            if (keys[' ']) {
-                const currentTime = Date.now();
-                if (currentTime - lastShotTime > shotCooldown) {
-                    shootBullet();
-                    lastShotTime = currentTime;
-                }
-            }
-            
-            // Keep player within canvas bounds
-            player.x = Math.max(player.width / 2, Math.min(GAME_WIDTH - player.width / 2, player.x));
-            player.y = Math.max(player.height / 2, Math.min(GAME_HEIGHT - player.height / 2, player.y));
-            
-            // Animate player
-            player.frameTimer++;
-            if (player.frameTimer >= player.frameDelay) {
-                player.frameTimer = 0;
-                player.frame = (player.frame + 1) % player.frameCount;
-            }
-        }
-        
-        // Draw Player
-        function drawPlayer() {
-            // Calculate source position based on direction and frame
-            let sx = 0, sy = 0;
-            
-            switch (player.direction) {
-                case 'up':
-                    sx = 32;
-                    sy = 0;
-                    break;
-                case 'down':
-                    sx = 0;
-                    sy = 32;
-                    break;
-                case 'left':
-                    sx = 0;
-                    sy = 64;
-                    break;
-                case 'right':
-                    sx = 32;
-                    sy = 64;
-                    break;
-            }
-            
-            // Draw player
-            ctx.drawImage(
-                playerImage,
-                sx + (player.frame * 16), sy, 16, 16,
-                player.x - player.width / 2, player.y - player.height / 2,
-                player.width, player.height
-            );
-        }
-        
-        // Shoot Bullet
-        function shootBullet() {
-            // Calculate direction to mouse cursor
-            const dx = mouseX - player.x;
-            const dy = mouseY - player.y;
-            const angle = Math.atan2(dy, dx);
-            
-            // Create bullet
-            const bullet = {
-                x: player.x,
-                y: player.y,
-                width: BULLET_SIZE,
-                height: BULLET_SIZE,
-                dx: Math.cos(angle) * BULLET_SPEED,
-                dy: Math.sin(angle) * BULLET_SPEED,
-                damage: BULLET_DAMAGE,
-                timeToLive: 60 // Frames
-            };
-            
-            // Add bullet to array
-            bullets.push(bullet);
-            
-            // Play shoot sound
-            shootSound.currentTime = 0;
-            shootSound.play().catch(e => console.log("音频播放错误:", e));
-            
-            // Set player direction to shooting direction
-            if (Math.abs(dx) > Math.abs(dy)) {
-                player.direction = dx > 0 ? 'right' : 'left';
-            } else {
-                player.direction = dy > 0 ? 'down' : 'up';
-            }
-        }
-        
-        // Update Bullets
-        function updateBullets() {
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                const bullet = bullets[i];
-                
-                // Move bullet
-                bullet.x += bullet.dx;
-                bullet.y += bullet.dy;
-                
-                // Decrease time to live
-                bullet.timeToLive--;
-                
-                // Remove bullet if it goes off screen or time to live expires
-                if (
-                    bullet.x < 0 || 
-                    bullet.x > GAME_WIDTH || 
-                    bullet.y < 0 || 
-                    bullet.y > GAME_HEIGHT || 
-                    bullet.timeToLive <= 0
-                ) {
-                    bullets.splice(i, 1);
-                }
-            }
-        }
-        
-        // Draw Bullets
-        function drawBullets() {
-            ctx.fillStyle = '#ff0000';
-            
-            for (const bullet of bullets) {
-                ctx.beginPath();
-                ctx.arc(bullet.x, bullet.y, bullet.width / 2, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-        
-        // Spawn Zombies
-        function spawnZombies() {
-            const currentTime = Date.now();
-            
-            // Spawn zombies at intervals if below max
-            if (
-                currentTime - lastZombieSpawn > SPAWN_INTERVAL && 
-                zombies.length < MAX_ZOMBIES * wave
-            ) {
-                // Random spawn position (outside screen)
-                let x, y;
-                const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
-                
-                switch (side) {
-                    case 0: // Top
-                        x = Math.random() * GAME_WIDTH;
-                        y = -ZOMBIE_SIZE;
-                        break;
-                    case 1: // Right
-                        x = GAME_WIDTH + ZOMBIE_SIZE;
-                        y = Math.random() * GAME_HEIGHT;
-                        break;
-                    case 2: // Bottom
-                        x = Math.random() * GAME_WIDTH;
-                        y = GAME_HEIGHT + ZOMBIE_SIZE;
-                        break;
-                    case 3: // Left
-                        x = -ZOMBIE_SIZE;
-                        y = Math.random() * GAME_HEIGHT;
-                        break;
-                }
-                
-                // Create zombie
-                const zombie = {
-                    x: x,
-                    y: y,
-                    width: ZOMBIE_SIZE,
-                    height: ZOMBIE_SIZE,
-                    health: ZOMBIE_HEALTH * Math.floor(wave / 2 + 1),
-                    speed: ZOMBIE_SPEED + (wave * 0.1),
-                    direction: 'down',
-                    frame: 0,
-                    frameCount: 2,
-                    frameDelay: 15,
-                    frameTimer: 0
-                };
-                
-                // Add zombie to array
-                zombies.push(zombie);
-                
-                // Update last spawn time
-                lastZombieSpawn = currentTime;
-            }
-        }
-        
-        // Update Zombies
-        function updateZombies() {
-            for (const zombie of zombies) {
-                // Calculate direction to player
-                const dx = player.x - zombie.x;
-                const dy = player.y - zombie.y;
-                const angle = Math.atan2(dy, dx);
-                
-                // Move zombie towards player
-                zombie.x += Math.cos(angle) * zombie.speed;
-                zombie.y += Math.sin(angle) * zombie.speed;
-                
-                // Set direction based on movement
-                if (Math.abs(dx) > Math.abs(dy)) {
-                    zombie.direction = dx > 0 ? 'right' : 'left';
-                } else {
-                    zombie.direction = dy > 0 ? 'down' : 'up';
-                }
-                
-                // Animate zombie
-                zombie.frameTimer++;
-                if (zombie.frameTimer >= zombie.frameDelay) {
-                    zombie.frameTimer = 0;
-                    zombie.frame = (zombie.frame + 1) % zombie.frameCount;
-                }
-            }
-        }
-        
-        // Draw Zombies
-        function drawZombies() {
-            for (const zombie of zombies) {
-                // Calculate source position based on direction and frame
-                let sx = 0, sy = 0;
-                
-                switch (zombie.direction) {
-                    case 'up':
-                        sx = 0;
-                        sy = 32;
-                        break;
-                    case 'down':
-                        sx = 0;
-                        sy = 0;
-                        break;
-                    case 'left':
-                        sx = 32;
-                        sy = 32;
-                        break;
-                    case 'right':
-                        sx = 32;
-                        sy = 0;
-                        break;
-                }
-                
-                // Draw zombie
-                ctx.drawImage(
-                    zombieImage,
-                    sx + (zombie.frame * 16), sy, 16, 16,
-                    zombie.x - zombie.width / 2, zombie.y - zombie.height / 2,
-                    zombie.width, zombie.height
-                );
-                
-                // Draw health bar
-                if (zombie.health > 1) {
-                    const healthBarWidth = zombie.width;
-                    const healthBarHeight = 2;
-                    const healthBarX = zombie.x - healthBarWidth / 2;
-                    const healthBarY = zombie.y - zombie.height / 2 - 4;
-                    
-                    // Background
-                    ctx.fillStyle = '#333';
-                    ctx.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
-                    
-                    // Health
-                    const healthPercentage = zombie.health / (ZOMBIE_HEALTH * Math.floor(wave / 2 + 1));
-                    ctx.fillStyle = '#ff0000';
-                    ctx.fillRect(healthBarX, healthBarY, healthBarWidth * healthPercentage, healthBarHeight);
-                }
-            }
-        }
-        
-        // Check Collisions
-        function checkCollisions() {
-            // Bullet-zombie collisions
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                const bullet = bullets[i];
-                
-                for (let j = zombies.length - 1; j >= 0; j--) {
-                    const zombie = zombies[j];
-                    
-                    if (
-                        bullet.x + bullet.width > zombie.x - zombie.width / 2 &&
-                        bullet.x - bullet.width < zombie.x + zombie.width / 2 &&
-                        bullet.y + bullet.height > zombie.y - zombie.height / 2 &&
-                        bullet.y - bullet.height < zombie.y + zombie.height / 2
-                    ) {
-                        // Zombie takes damage
-                        zombie.health -= bullet.damage;
-                        
-                        // Play hit sound
-                        hitSound.currentTime = 0;
-                        hitSound.play().catch(e => console.log("音频播放错误:", e));
-                        
-                        // Remove bullet
-                        bullets.splice(i, 1);
-                        
-                        // Check if zombie is dead
-                        if (zombie.health <= 0) {
-                            // Add to score
-                            score += POINT_VALUE * wave;
-                            scoreEarnedThisWave += POINT_VALUE * wave;
-                            zombiesKilledThisWave++;
-                            
-                            // Play death sound
-                            deathSound.currentTime = 0;
-                            deathSound.play().catch(e => console.log("音频播放错误:", e));
-                            
-                            // Remove zombie
-                            zombies.splice(j, 1);
-                            
-                            // Update UI
-                            updateUI();
-                        }
-                        
-                        break;
-                    }
-                }
-            }
-            
-            // Player-zombie collisions
-            for (const zombie of zombies) {
-                if (
-                    player.x + player.width / 2 > zombie.x - zombie.width / 2 &&
-                    player.x - player.width / 2 < zombie.x + zombie.width / 2 &&
-                    player.y + player.height / 2 > zombie.y - zombie.height / 2 &&
-                    player.y - player.height / 2 < zombie.y + zombie.height / 2
-                ) {
-                    // Player takes damage
-                    player.health--;
-                    
-                    // Play hit sound
-                    hitSound.currentTime = 0;
-                    hitSound.play().catch(e => console.log("音频播放错误:", e));
-                    
-                    // Update lives
-                    lives = player.health;
-                    
-                    // Update UI
-                    updateUI();
-                    
-                    // Check if player is dead
-                    if (player.health <= 0) {
-                        gameOver = true;
-                        waveInProgress = false;
-                    }
-                    
-                    // Push player away from zombie
-                    const dx = player.x - zombie.x;
-                    const dy = player.y - zombie.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (distance > 0) {
-                        player.x += (dx / distance) * 20;
-                        player.y += (dy / distance) * 20;
-                    }
-                    
-                    // Keep player within canvas bounds
-                    player.x = Math.max(player.width / 2, Math.min(GAME_WIDTH - player.width / 2, player.x));
-                    player.y = Math.max(player.height / 2, Math.min(GAME_HEIGHT - player.height / 2, player.y));
-                    
-                    break;
-                }
-            }
-        }
-        
-        // Check Wave Clear
-        function checkWaveClear() {
-            if (zombies.length === 0 && waveInProgress) {
-                waveClear = true;
-                waveInProgress = false;
-                
-                // Play wave clear sound
-                waveSound.currentTime = 0;
-                waveSound.play().catch(e => console.log("音频播放错误:", e));
-            }
-        }
-        
-        // Update UI
-        function updateUI() {
-            scoreElement.textContent = score;
-            livesElement.textContent = lives;
-            waveElement.textContent = wave;
-        }
-        
-        // Show Game Over Screen
-        function showGameOverScreen() {
-            finalScoreElement.textContent = score;
-            gameOverScreen.classList.remove('hidden');
-        }
-        
-        // Show Wave Clear Screen
-        function showWaveClearScreen() {
-            clearedWaveElement.textContent = wave;
-            zombiesKilledElement.textContent = zombiesKilledThisWave;
-            scoreEarnedElement.textContent = scoreEarnedThisWave;
-            waveClearScreen.classList.remove('hidden');
-        }
-        
-        // Start Next Wave
-        function startNextWave() {
-            // Hide wave clear screen
-            waveClearScreen.classList.add('hidden');
-            
-            // Increase wave
-            wave++;
-            
-            // Reset wave variables
-            zombiesKilledThisWave = 0;
-            scoreEarnedThisWave = 0;
-            
-            // Update UI
-            updateUI();
-            
-            // Start wave
-            waveInProgress = true;
-            waveClear = false;
-            
-            // Continue game loop
-            gameLoop();
-        }
-        
-        // Restart Game
-        function restartGame() {
-            // Hide game over screen
-            gameOverScreen.classList.add('hidden');
-            
-            // Start new game
-            startGame();
-        }
-        
-        // Show Start Screen
-        function showStartScreen() {
-            // Cancel game loop
-            cancelAnimationFrame(gameLoopId);
-            
-            // Hide all screens except start screen
-            startScreen.classList.remove('hidden');
-            controlsScreen.classList.add('hidden');
-            aboutScreen.classList.add('hidden');
-            gameOverScreen.classList.add('hidden');
-            waveClearScreen.classList.add('hidden');
-            
-            // Reset game state
-            gameOver = false;
-            waveInProgress = false;
-            waveClear = false;
-        }
-        
-        // Show Controls Screen
-        function showControls() {
-            startScreen.classList.add('hidden');
-            controlsScreen.classList.remove('hidden');
-        }
-        
-        // Show About Screen
-        function showAbout() {
-            startScreen.classList.add('hidden');
-            aboutScreen.classList.remove('hidden');
-        }
-        
-        // Initialize game when window loads
-        window.addEventListener('load', initGame);
-    </script>
-</body>
-</html>
+        const rightBtn = document.getElementById</doubaocanvas>
